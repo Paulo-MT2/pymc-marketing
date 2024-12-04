@@ -13,4 +13,4 @@
 #   limitations under the License.
 """Version of the package."""
 
-__version__ = "0.10.0+mt2"
+__version__ = "0.10.1+mt2"

@@ -1196,7 +1196,12 @@ class MMMModelBuilder(ModelBuilder):
         """
         return pm.model_to_graphviz(self.model, **kwargs)
 
-    def _process_decomposition_components(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _process_decomposition_components(
+            self, 
+            data: pd.DataFrame, 
+            start_datetime: pd.Timestamp = None, 
+            end_datetime: pd.Timestamp = None
+        ) -> pd.DataFrame:
         """Process data to compute the sum of contributions by component and calculate their percentages.
 
         The output dataframe will have columns for "component", "contribution", and "percentage".
@@ -1205,6 +1210,10 @@ class MMMModelBuilder(ModelBuilder):
         ----------
         data : pd.DataFrame
             Dataframe containing the contribution by component from the function "compute_mean_contributions_over_time".
+        start_datetime : pd.Timestamp, optional
+            If provided, filters the data to include only entries after this timestamp.
+        end_datetime : pd.Timestamp, optional
+            If provided, filters the data to include only entries before this timestamp.
 
         Returns
         -------
@@ -1216,6 +1225,11 @@ class MMMModelBuilder(ModelBuilder):
         dataframe = data.copy()
         stack_dataframe = dataframe.stack().reset_index()
         stack_dataframe.columns = pd.Index(["date", "component", "contribution"])
+        # Apply date filters if provided
+        if start_datetime is not None:
+            stack_dataframe = stack_dataframe[stack_dataframe["date"] > start_datetime]
+        if end_datetime is not None:
+            stack_dataframe = stack_dataframe[stack_dataframe["date"] < end_datetime]
         stack_dataframe.set_index(["date", "component"], inplace=True)
         dataframe = stack_dataframe.groupby("component").sum()
         dataframe.sort_values(by="contribution", ascending=True, inplace=True)
@@ -1230,6 +1244,8 @@ class MMMModelBuilder(ModelBuilder):
         self,
         original_scale: bool = True,
         figsize: tuple[int, int] = (14, 7),
+        start_datetime: pd.Timestamp = None, 
+        end_datetime: pd.Timestamp = None,
         **kwargs,
     ) -> plt.Figure:
         """Create a waterfall plot.
@@ -1242,6 +1258,10 @@ class MMMModelBuilder(ModelBuilder):
             If True, the contributions are plotted in the original scale of the target.
         figsize : tuple[int, int], optional
             The size of the figure. The default is (14, 7).
+        start_datetime : pd.Timestamp, optional
+            If provided, considers only components contributions after this timestamp.
+        end_datetime : pd.Timestamp, optional
+            If provided, considers only components contributions before this timestamp.
         **kwargs
             Additional keyword arguments to pass to the matplotlib `subplots` function.
 
@@ -1255,7 +1275,11 @@ class MMMModelBuilder(ModelBuilder):
             original_scale=original_scale
         )
 
-        dataframe = self._process_decomposition_components(data=dataframe)
+        dataframe = self._process_decomposition_components(
+            data=dataframe, 
+            start_datetime=start_datetime, 
+            end_datetime=end_datetime
+        )
         total_contribution = dataframe["contribution"].sum()
 
         fig, ax = plt.subplots(figsize=figsize, layout="constrained", **kwargs)
@@ -1296,7 +1320,13 @@ class MMMModelBuilder(ModelBuilder):
                 fontsize=10,
             )
 
-        ax.set_title("Response Decomposition Waterfall by Components")
+        # Set Title
+        title = "Response Decomposition Waterfall by Components"
+        if start_datetime is not None:
+            title = f"{title} from {start_datetime.strftime('%Y-%m-%d')}"
+        if end_datetime is not None:
+            title = f"{title} until {end_datetime.strftime('%Y-%m-%d')}"
+        ax.set_title(title)
         ax.set_xlabel("Cumulative Contribution")
         ax.set_ylabel("Components")
 
