@@ -99,16 +99,6 @@ def test_get_item() -> None:
     assert var["sigma"] == 1
 
 
-def test_noncentered_with_scalars() -> None:
-    with pytest.raises(ValueError):
-        Prior(
-            "Normal",
-            mu=2,
-            sigma=10,
-            centered=False,
-        )
-
-
 def test_noncentered_needs_params() -> None:
     with pytest.raises(ValueError):
         Prior(
@@ -651,3 +641,52 @@ def test_custom_transform_comes_first() -> None:
     )
 
     clear_custom_transforms()
+
+
+def test_serialize_with_pytensor() -> None:
+    sigma = pt.arange(1, 4)
+    dist = Prior("Normal", mu=0, sigma=sigma)
+
+    assert dist.to_json() == {
+        "dist": "Normal",
+        "kwargs": {
+            "mu": 0,
+            "sigma": [1, 2, 3],
+        },
+    }
+
+
+def test_zsn_non_centered() -> None:
+    try:
+        Prior("ZeroSumNormal", sigma=1, centered=False)
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+
+
+class Arbitrary:
+    def __init__(self, dims: tuple[str, ...]) -> None:
+        self.dims = dims
+
+    def create_variable(self, name: str):
+        return pm.Normal(name, dims=self.dims)
+
+
+def test_create_prior_with_arbitrary() -> None:
+    dist = Prior(
+        "Normal",
+        mu=Arbitrary(dims=("channel",)),
+        sigma=1,
+        dims=("channel", "geo"),
+    )
+
+    coords = {
+        "channel": ["C1", "C2", "C3"],
+        "geo": ["G1", "G2"],
+    }
+    with pm.Model(coords=coords) as model:
+        dist.create_variable("var")
+
+    assert "var_mu" in model
+    var_mu = model["var_mu"]
+
+    assert fast_eval(var_mu).shape == (len(coords["channel"]),)
