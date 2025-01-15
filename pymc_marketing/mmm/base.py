@@ -1282,18 +1282,18 @@ class MMMModelBuilder(ModelBuilder):
         )
         total_contribution = dataframe["contribution"].sum()
 
-        fig, ax = plt.subplots(figsize=figsize, layout="constrained", **kwargs)
+        fig, ax = plt.subplots(figsize=figsize, layout="constrained")
 
-        cumulative_contribution = 0
+        cumulative_contribution = 0  # Tracks the cumulative contribution as bars are added
 
         for index, row in dataframe.iterrows():
-            color = "C0" if row["contribution"] >= 0 else "C3"
+            color = "C0" if row["contribution"] >= 0 else "C3"  # Positive contributions are blue, negative are red
 
-            bar_start = (
-                cumulative_contribution + row["contribution"]
-                if row["contribution"] < 0
-                else cumulative_contribution
-            )
+            # Set the starting point of the bar, even for negative contributions
+            bar_start = cumulative_contribution
+            cumulative_contribution += row["contribution"]
+
+            # Draw the horizontal bar for the current component
             ax.barh(
                 row["component"],
                 row["contribution"],
@@ -1302,14 +1302,10 @@ class MMMModelBuilder(ModelBuilder):
                 alpha=0.5,
             )
 
-            if row["contribution"] > 0:
-                cumulative_contribution += row["contribution"]
-
+            # Calculate the position for the label on the bar
             label_pos = bar_start + (row["contribution"] / 2)
 
-            if row["contribution"] < 0:
-                label_pos = bar_start - (row["contribution"] / 2)
-
+            # Add a label showing the contribution value and percentage
             ax.text(
                 label_pos,
                 index,
@@ -1320,7 +1316,20 @@ class MMMModelBuilder(ModelBuilder):
                 fontsize=10,
             )
 
-        # Set Title
+        # Add a vertical line at 100% of the total contribution
+        ax.axvline(
+            x=total_contribution,
+            color="black",
+            linestyle="--",
+            linewidth=1,
+            alpha=0.25,
+            label="100% Line",
+        )
+
+        # Add horizontal grid lines for better readability
+        ax.grid(axis="y", linestyle="--", alpha=0.5)
+
+        # Set the chart title and axis labels
         title = "Response Decomposition Waterfall by Components"
         if start_datetime is not None:
             title = f"{title} from {start_datetime.strftime('%Y-%m-%d')}"
@@ -1330,15 +1339,18 @@ class MMMModelBuilder(ModelBuilder):
         ax.set_xlabel("Cumulative Contribution")
         ax.set_ylabel("Components")
 
+        # Configure the x-axis ticks to show percentage values
         xticks = np.linspace(0, total_contribution, num=11)
         xticklabels = [f"{(x/total_contribution)*100:.0f}%" for x in xticks]
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
 
+        # Remove unnecessary spines for a cleaner appearance
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["left"].set_visible(False)
 
+        # Set the y-axis ticks to match the number of components
         ax.set_yticks(np.arange(len(dataframe)))
         ax.set_yticklabels(dataframe["component"])
 
