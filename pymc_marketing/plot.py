@@ -706,11 +706,18 @@ def plot_curve(
         non_grid_names=non_grid_names,
         **sample_kwargs,
     )
+    # fig, axes = plot_hdi(
+    #     curve,
+    #     non_grid_names=non_grid_names,
+    #     axes=axes,
+    #     **hdi_kwargs,
+    # )
     fig, axes = plot_hdi(
         curve,
         non_grid_names=non_grid_names,
         axes=axes,
-        **hdi_kwargs,
+        colors=["black"],
+        hdi_kwargs=hdi_kwargs,
     )
 
     return fig, axes
