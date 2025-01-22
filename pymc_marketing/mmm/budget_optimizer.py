@@ -222,6 +222,7 @@ class BudgetOptimizer(BaseModel):
         budget_bounds: dict[str, tuple[float, float]] | None = None,
         custom_constraints: dict[Any, Any] | None = None,
         minimize_kwargs: dict[str, Any] | None = None,
+        initial_guess: np.ndarray = None,
     ) -> tuple[dict[str, float], float]:
         """Allocate the budget based on the total budget, budget bounds, and custom constraints.
 
@@ -282,7 +283,8 @@ class BudgetOptimizer(BaseModel):
             constraints = custom_constraints
 
         num_channels = len(self.parameters["channels"])
-        initial_guess = np.ones(num_channels) * total_budget / num_channels
+        if initial_guess is None:
+            initial_guess = np.ones(num_channels) * total_budget / num_channels
         bounds = [
             (
                 (budget_bounds[channel][0], budget_bounds[channel][1])

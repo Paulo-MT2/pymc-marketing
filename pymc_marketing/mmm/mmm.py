@@ -2243,6 +2243,7 @@ class MMM(
         noise_level: float = 0.01,
         response_scaler: float = 1.0,
         utility_function: UtilityFunctionType = average_response,
+        initial_guess: np.ndarray = None,
         **minimize_kwargs,
     ) -> az.InferenceData:
         """Optimize the given budget based on the specified utility function over a specified time period.
@@ -2312,6 +2313,7 @@ class MMM(
             total_budget=budget,
             budget_bounds=budget_bounds,
             custom_constraints=custom_constraints,
+            initial_guess=initial_guess,
             **minimize_kwargs,
         )
 
