@@ -1883,6 +1883,7 @@ class MMM(
     def sample_posterior_predictive(
         self,
         X_pred,
+        date,
         extend_idata: bool = True,
         combined: bool = True,
         include_last_observations: bool = False,
@@ -1917,7 +1918,7 @@ class MMM(
         """
         if include_last_observations:
             X_pred = pd.concat(
-                [self.X.iloc[-self.adstock.l_max :, :], X_pred], axis=0
+                [self.X.set_index(self.date_column).loc[:date].iloc[-self.adstock.l_max :, :].reset_index(), X_pred], axis=0
             ).sort_values(by=self.date_column)
 
         self._data_setter(X_pred)
@@ -2180,6 +2181,7 @@ class MMM(
 
     def sample_response_distribution(
         self,
+        date,
         allocation_strategy: dict[str, float],
         time_granularity: str,
         num_periods: int,
@@ -2200,11 +2202,11 @@ class MMM(
 
         Returns
         -------
-        az.InferenceData
+        az.
             The posterior predictive samples based on the synthetic dataset.
         """
         synth_dataset = self._create_synth_dataset(
-            df=self.X,
+            df=self.X.set_index(self.date_column).loc[:date].reset_index(),
             date_column=self.date_column,
             allocation_strategy=allocation_strategy,
             channels=self.channel_columns,
@@ -2227,6 +2229,7 @@ class MMM(
 
         return self.sample_posterior_predictive(
             X_pred=synth_dataset,
+            date = date,
             extend_idata=False,
             include_last_observations=True,
             original_scale=False,
